@@ -15,6 +15,7 @@ import functools
 import logging
 import os
 import os.path as osp
+import pdb
 
 import numpy as np
 import tensorflow as tf
@@ -24,7 +25,6 @@ from utils.infer_utils import get_exemplar_images
 from utils.misc_utils import get_center
 
 slim = tf.contrib.slim
-
 
 class InferenceWrapper():
   """Model wrapper class for performing inference with a siamese model."""
@@ -70,12 +70,23 @@ class InferenceWrapper():
     self.model_config = model_config
     self.track_config = track_config
 
-    self.build_inputs()
+    if track_config["is_video"] == True:
+      self.build_inputs_frame()
+    else:
+      self.build_inputs()
+
     self.build_search_images()
     self.build_template()
     self.build_detection()
     self.build_upsample()
     self.dumb_op = tf.no_op('dumb_operation')
+
+  def build_inputs_frame(self):
+    self.image = tf.placeholder(dtype=tf.float32,shape=[None,None,3],name="input_frame")
+
+    self.target_bbox_feed = tf.placeholder(dtype=tf.float32,
+                                           shape=[4],
+                                           name='target_bbox_feed')  # center's y, x, height, width
 
   def build_inputs(self):
     filename = tf.placeholder(tf.string, [], name='filename')
@@ -221,10 +232,16 @@ class InferenceWrapper():
       self.response_up = response_up
 
   def initialize(self, sess, input_feed):
-    image_path, target_bbox = input_feed
-    scale_xs, _ = sess.run([self.scale_xs, self.init],
-                           feed_dict={'filename:0': image_path,
-                                      "target_bbox_feed:0": target_bbox, })
+    if self.track_config["is_video"] == True:
+      frame,target_bbox = input_feed
+      scale_xs, _ = sess.run([self.scale_xs,self.init],
+                            feed_dict={"input_frame:0":frame,
+                                        "target_bbox_feed:0":target_bbox})
+    else:
+      image_path, target_bbox = input_feed
+      scale_xs, _ = sess.run([self.scale_xs, self.init],
+                             feed_dict={'filename:0': image_path,
+                                        "target_bbox_feed:0": target_bbox })
     return scale_xs
 
   def inference_step(self, sess, input_feed):
@@ -237,6 +254,21 @@ class InferenceWrapper():
         "filename:0": image_path,
         "target_bbox_feed:0": target_bbox, })
 
+    output = {
+      'image_cropped': image_cropped,
+      'scale_xs': scale_xs,
+      'response': response_output}
+    return output, None
+  
+  def inference_step_frame(self, sess, input_feed):
+    frame, target_bbox = input_feed
+    log_level = self.track_config['log_level']
+    image_cropped_op = self.search_images if log_level > 0 else self.dumb_op
+    image_cropped, scale_xs, response_output = sess.run(
+      fetches=[image_cropped_op, self.scale_xs, self.response_up],
+      feed_dict={
+        "input_frame:0": frame,
+        "target_bbox_feed:0": target_bbox, })
     output = {
       'image_cropped': image_cropped,
       'scale_xs': scale_xs,

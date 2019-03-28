@@ -12,6 +12,7 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+import pdb
 
 import tensorflow as tf
 
@@ -115,7 +116,7 @@ class SiameseModel:
                          (self.instance_embeds, self.templates),
                          dtype=self.instance_embeds.dtype)
       output = tf.squeeze(output, [1, 4])  # of shape e.g., [8, 15, 15]
-
+      pdb.set_trace()
       # Adjust score, this is required to make training possible.
       config = self.model_config['adjust_response_config']
       bias = tf.get_variable('biases', [1],

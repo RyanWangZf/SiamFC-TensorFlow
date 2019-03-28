@@ -16,6 +16,8 @@ import os
 import os.path as osp
 import sys
 from glob import glob
+import pdb
+
 
 import tensorflow as tf
 from sacred import Experiment
@@ -43,6 +45,7 @@ def main(checkpoint, input_files):
 
   model_config, _, track_config = load_cfgs(checkpoint)
   track_config['log_level'] = 1
+  track_config["is_video"] = False
 
   g = tf.Graph()
   with g.as_default():
@@ -79,6 +82,7 @@ def main(checkpoint, input_files):
       filenames = sort_nicely(glob(video_dir + '/img/*.jpg'))
       first_line = open(video_dir + '/groundtruth_rect.txt').readline()
       bb = [int(v) for v in first_line.strip().split(',')]
+      # Rectangle: [x,y,width,height]
       init_bb = Rectangle(bb[0] - 1, bb[1] - 1, bb[2], bb[3])  # 0-index in python
 
       trajectory = tracker.track(sess, init_bb, filenames, video_log_dir)

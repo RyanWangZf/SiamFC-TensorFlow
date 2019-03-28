@@ -18,7 +18,6 @@ from scipy import io as sio
 
 from utils.misc_utils import get_center
 
-
 def construct_gt_score_maps(response_size, batch_size, stride, gt_config=None):
   """Construct a batch of groundtruth score maps
 

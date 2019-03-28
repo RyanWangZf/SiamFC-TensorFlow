@@ -19,6 +19,8 @@ import numpy as np
 import tensorflow as tf
 from cv2 import resize
 
+import pdb
+
 from utils.misc_utils import get_center
 
 Rectangle = collections.namedtuple('Rectangle', ['x', 'y', 'width', 'height'])
